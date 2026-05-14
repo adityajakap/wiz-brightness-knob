@@ -47,24 +47,24 @@ Set your WiZ light IP address.
 ### Option 1: Edit the script directly
 
 ```python
-LIGHT_IP = os.getenv("WIZ_LIGHT_IP", "192.168.0.100")
+LIGHT_IP = os.getenv("WIZ_LIGHT_IP", "YOUR_WIZ_LIGHT_IP")
 ```
 
-Replace `192.168.0.100` with your WiZ light IP address.
+Replace `YOUR_WIZ_LIGHT_IP` with your WiZ light IP address.
 
 ### Option 2: Set environment variable temporarily
 
 For CMD:
 
 ```bash
-set WIZ_LIGHT_IP=192.168.0.100
+set WIZ_LIGHT_IP=YOUR_WIZ_LIGHT_IP
 python brightness_control.py
 ```
 
 For PowerShell:
 
 ```powershell
-$env:WIZ_LIGHT_IP="192.168.0.100"
+$env:WIZ_LIGHT_IP="YOUR_WIZ_LIGHT_IP"
 python brightness_control.py
 ```
 
