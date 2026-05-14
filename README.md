@@ -47,26 +47,12 @@ Set your WiZ light IP address.
 ### Option 1: Edit the script directly
 
 ```python
-LIGHT_IP = os.getenv("WIZ_LIGHT_IP", "YOUR_WIZ_LIGHT_IP")
+LIGHT_IP = "YOUR_WIZ_LIGHT_IP"  # ← IP lampu WiZ Anda
+
 ```
 
 Replace `YOUR_WIZ_LIGHT_IP` with your WiZ light IP address.
 
-### Option 2: Set environment variable temporarily
-
-For CMD:
-
-```bash
-set WIZ_LIGHT_IP=YOUR_WIZ_LIGHT_IP
-python brightness_control.py
-```
-
-For PowerShell:
-
-```powershell
-$env:WIZ_LIGHT_IP="YOUR_WIZ_LIGHT_IP"
-python brightness_control.py
-```
 
 To find your WiZ light IP address, you can check your router’s connected devices list. WiZ devices usually appear with a name similar to `wiz_xxxxxx`.
 

@@ -23,18 +23,16 @@ import keyboard
 from pywizlight import wizlight, PilotBuilder
 from pywizlight.exceptions import WizLightConnectionError, WizLightTimeOutError
 
-# ── Logging: hanya ke file saat auto-start, ke stdout saat manual ────────────
 LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wiz.log")
 handlers = [logging.FileHandler(LOG_FILE, encoding="utf-8")]
 if sys.stdout and sys.stdout.isatty():
     handlers.append(logging.StreamHandler(sys.stdout))
 
 logging.basicConfig(
-    level=logging.WARNING,          # hanya WARNING ke atas disimpan (hemat I/O)
+    level=logging.WARNING,
     format="%(asctime)s %(levelname)s %(message)s",
     handlers=handlers,
 )
-# Logger khusus brightness — INFO ke atas, hanya saat terminal terbuka
 bright_log = logging.getLogger("bright")
 bright_log.setLevel(logging.INFO)
 if sys.stdout and sys.stdout.isatty():
@@ -43,26 +41,26 @@ if sys.stdout and sys.stdout.isatty():
 
 logger = logging.getLogger(__name__)
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ===================
 # KONFIGURASI
-# ══════════════════════════════════════════════════════════════════════════════
+# ===================
 
-LIGHT_IP        = "YOUR_WIZ_LIGHT_IP"  # ← IP lampu WiZ Anda
-BRIGHTNESS_STEP = 36               # Per klik (51 ≈ 5 klik full, 85 ≈ 3 klik full)
-DEBOUNCE_S      = 0.08             # Detik antar perintah
-RECONNECT_S     = 10               # Coba reconnect tiap N detik jika putus
+LIGHT_IP        = "YOUR_WIZ_LIGHT_IP" # Ganti dengan IP lampu WiZ Anda
+BRIGHTNESS_STEP = 36 # Naik/turun sensitivitas per klik (255/7)
+DEBOUNCE_S      = 0.08
+RECONNECT_S     = 10
 
-SC_VOLUME_UP   = -175              # Scan code dari hasil --scan
+SC_VOLUME_UP   = -175
 SC_VOLUME_DOWN = -174
 SC_SHIFT_L     = 42
 SC_SHIFT_R     = 54
 
-VK_VOLUME_UP   = 0xAF             # Virtual key Windows
+VK_VOLUME_UP   = 0xAF
 VK_VOLUME_DOWN = 0xAE
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Win32 SendInput — pre-build struct sekali saja, bukan tiap pemanggilan
-# ══════════════════════════════════════════════════════════════════════════════
+# ===================
+# Win32 SendInput
+# ===================
 
 _user32 = ctypes.windll.user32
 _KEYEVENTF_KEYUP = 0x0002
@@ -84,7 +82,6 @@ class _INPUT(ctypes.Structure):
         ("padding", ctypes.c_ubyte * 8),
     ]
 
-# Pre-build array untuk volume up dan down sekali saja
 def _build_vk_inputs(vk: int):
     arr = (_INPUT * 2)()
     for i, flags in enumerate([0, _KEYEVENTF_KEYUP]):
@@ -102,22 +99,20 @@ def _send_volume(up: bool):
     _user32.SendInput(2, inputs, _INPUT_SIZE)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ===================
 # Controller
-# ══════════════════════════════════════════════════════════════════════════════
+# ===================
 
 class BrightnessController:
 
     def __init__(self):
         self.light              = wizlight(LIGHT_IP)
         self.current_brightness = 128
-        self._last_cmd          = 0.0   # timestamp float — lebih ringan dari asyncio.time()
+        self._last_cmd          = 0.0
         self.is_connected       = False
         self._loop              = None
         self._shift             = False
-        self._sending           = False  # re-entrancy guard
-
-    # ── Koneksi & reconnect ───────────────────────────────────────────────────
+        self._sending           = False
 
     async def _connect(self) -> bool:
         try:
@@ -133,14 +128,11 @@ class BrightnessController:
         return False
 
     async def _reconnect_loop(self):
-        """Coba reconnect di background tanpa mengganggu hook."""
         while True:
             await asyncio.sleep(RECONNECT_S)
             if not self.is_connected:
                 bright_log.info("🔄 Mencoba reconnect...")
                 await self._connect()
-
-    # ── Update brightness ─────────────────────────────────────────────────────
 
     async def _update(self, step: int) -> None:
         if not self.is_connected:
@@ -167,39 +159,30 @@ class BrightnessController:
     def _schedule(self, step: int):
         asyncio.run_coroutine_threadsafe(self._update(step), self._loop)
 
-    # ── Keyboard hook ─────────────────────────────────────────────────────────
-
     def _on_key(self, event) -> bool:
         sc = event.scan_code
 
-        # Shift tracking
         if sc == SC_SHIFT_L or sc == SC_SHIFT_R:
             self._shift = event.event_type == keyboard.KEY_DOWN
             return True
 
-        # Lewatkan semua key selain volume
         if sc != SC_VOLUME_UP and sc != SC_VOLUME_DOWN:
             return True
 
-        # Lewatkan key-up volume
         if event.event_type != keyboard.KEY_DOWN:
             return True
 
-        # Guard: jangan intercept re-send kita sendiri
         if self._sending:
             return True
 
         if self._shift:
             self._schedule(+BRIGHTNESS_STEP if sc == SC_VOLUME_UP else -BRIGHTNESS_STEP)
         else:
-            # Kirim ulang ke sistem via Win32 (bukan keyboard.send agar tidak loop)
             self._sending = True
             _send_volume(sc == SC_VOLUME_UP)
             self._sending = False
 
-        return False  # blokir original event
-
-    # ── Run ───────────────────────────────────────────────────────────────────
+        return False
 
     async def run(self):
         self._loop = asyncio.get_running_loop()
@@ -226,11 +209,9 @@ class BrightnessController:
             print("=" * 55)
             print()
 
-        # Jalankan reconnect loop di background
         reconnect_task = asyncio.create_task(self._reconnect_loop())
 
         try:
-            # sleep panjang — jauh lebih hemat CPU dari loop 0.1s
             while True:
                 await asyncio.sleep(3600)
         except (KeyboardInterrupt, asyncio.CancelledError):
@@ -245,9 +226,9 @@ class BrightnessController:
             bright_log.info("✅ Program dihentikan.")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Auto-start installer (Task Scheduler)
-# ══════════════════════════════════════════════════════════════════════════════
+# ===================
+# Auto-start Installer
+# ===================
 
 def install_autostart():
     script_path = os.path.abspath(__file__)
@@ -309,9 +290,9 @@ def uninstall_autostart():
     print("✅ Dihapus." if result == 0 else "❌ Tidak ditemukan atau gagal.")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Entry point
-# ══════════════════════════════════════════════════════════════════════════════
+# ===================
+# Entry Point
+# ===================
 
 async def main():
     await BrightnessController().run()
