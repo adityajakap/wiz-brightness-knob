@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+wiz.log
+.env
