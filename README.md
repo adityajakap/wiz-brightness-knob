@@ -1,4 +1,4 @@
-# WiZ Knob Brightness Control
+# WiZ Knob Brightness Control v0.1.0
 
 Control your WiZ light brightness using your keyboard volume knob on Windows.
 
