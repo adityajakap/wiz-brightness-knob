@@ -42,16 +42,30 @@ python -m pip install keyboard pywizlight
 
 ## Configuration
 
-Set your WiZ light IP address using an environment variable:
+Set your WiZ light IP address.
 
-```bash
-set WIZ_LIGHT_IP=192.168.0.100
-```
-
-Or edit the default value inside the script:
+### Option 1: Edit the script directly
 
 ```python
 LIGHT_IP = os.getenv("WIZ_LIGHT_IP", "192.168.0.100")
+```
+
+Replace `192.168.0.100` with your WiZ light IP address.
+
+### Option 2: Set environment variable temporarily
+
+For CMD:
+
+```bash
+set WIZ_LIGHT_IP=192.168.0.100
+python brightness_control.py
+```
+
+For PowerShell:
+
+```powershell
+$env:WIZ_LIGHT_IP="192.168.0.100"
+python brightness_control.py
 ```
 
 To find your WiZ light IP address, you can check your router’s connected devices list. WiZ devices usually appear with a name similar to `wiz_xxxxxx`.
